@@ -167,7 +167,7 @@ ci-local: ## Run CI pipeline locally with AMD64 enforcement (Docker-based)
 
 ci-local-docker: ## Run CI pipeline in Docker with AMD64 platform enforcement
 	@echo "Running CI pipeline in Docker with AMD64 platform enforcement..."
-	@docker run --rm -it \
+	@docker run --rm \
 		--platform linux/amd64 \
 		-v $(PWD):/workspace \
 		-w /workspace \
