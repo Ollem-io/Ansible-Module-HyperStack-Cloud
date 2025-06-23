@@ -2,7 +2,7 @@
 name = "hyperstack-cloud-ansible"
 version = "0.1.0"
 description = "Ansible collection for managing Hyperstack Cloud resources"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "GPL-3.0-or-later"}
 authors = [
     {name = "Davi Mello", email = "davi@ollem.io"}
