@@ -233,3 +233,9 @@ tests/output/
 
 # Prevent nested git directories
 hyperstack/ansible_collections/hyperstack/cloud/.git
+
+# Coverage report
+hyperstack/ansible_collections/hyperstack/cloud/tests/output/coverage/
+
+# output
+output/
