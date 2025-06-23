@@ -1,0 +1,204 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Mondays
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      
+      - name: Set up Python
+        run: uv python install 3.11
+      
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          uv run pip install ansible-core
+      
+      - name: Run ansible-lint
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run ansible-lint .
+      
+      - name: Run yamllint
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run yamllint .
+      
+      - name: Run Python linting
+        run: |
+          uv run black --check hyperstack/
+          uv run flake8 hyperstack/
+          uv run pylint hyperstack/
+      
+      - name: Run security scan
+        run: |
+          uv run bandit -r hyperstack/
+          uv run safety check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        ansible-version: ['2.14', '2.15', '2.16', '2.17']
+        exclude:
+          - python-version: '3.9'
+            ansible-version: '2.17'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          uv run pip install "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
+      
+      - name: Run unit tests
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
+      
+      - name: Run sanity tests
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run ansible-test sanity --python ${{ matrix.python-version }} --skip-test validate-modules
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.11' && matrix.ansible-version == '2.15'
+        with:
+          file: ./hyperstack/ansible_collections/hyperstack/cloud/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  integration:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      
+      - name: Set up Python
+        run: uv python install 3.11
+      
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          uv run pip install ansible-core
+      
+      - name: Run integration tests
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run ansible-test integration --python 3.11 --coverage
+      
+      - name: Generate coverage report
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run ansible-test coverage report --all --omit-files='*/test_*'
+
+  build:
+    name: Build Collection
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      
+      - name: Set up Python
+        run: uv python install 3.11
+      
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          uv run pip install ansible-core
+      
+      - name: Build collection
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run ansible-galaxy collection build --force
+      
+      - name: Install built collection
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run ansible-galaxy collection install hyperstack-cloud-*.tar.gz --force
+      
+      - name: Test installed collection
+        run: |
+          uv run ansible-doc hyperstack.cloud.cloud_manager
+      
+      - name: Upload collection artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-artifact
+          path: hyperstack/ansible_collections/hyperstack/cloud/hyperstack-cloud-*.tar.gz
+          retention-days: 30
+
+  publish:
+    name: Publish to Galaxy
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download collection artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: collection-artifact
+          path: ./
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      
+      - name: Set up Python
+        run: uv python install 3.11
+      
+      - name: Install ansible-core
+        run: uv run pip install ansible-core
+      
+      - name: Publish to Galaxy
+        run: |
+          uv run ansible-galaxy collection publish hyperstack-cloud-*.tar.gz --api-key ${{ secrets.GALAXY_API_KEY }}
+        env:
+          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
