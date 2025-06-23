@@ -1,4 +1,3 @@
----
 profile: production
 
 exclude_paths:
@@ -16,6 +15,7 @@ exclude_paths:
 skip_list:
   - yaml[line-length]  # Allow longer lines in YAML files
   - var-naming[no-role-prefix]  # Allow variables without role prefix
+  - yaml[document-start]  # Allow YAML without document start markers in module examples
 
 warn_list:
   - experimental  # Warn about experimental rules

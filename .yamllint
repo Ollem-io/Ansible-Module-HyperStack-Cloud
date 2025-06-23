@@ -17,7 +17,13 @@ rules:
     max: 120
   comments:
     min-spaces-from-content: 1
+  comments-indentation: false
   document-start:
     present: false
   truthy:
     allowed-values: ['true', 'false', 'yes', 'no']
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
