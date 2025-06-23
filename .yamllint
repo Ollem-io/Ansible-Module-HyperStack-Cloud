@@ -10,6 +10,7 @@ ignore: |
   dist/
   .tox/
   .ansible/
+  .github/
 
 rules:
   line-length:
