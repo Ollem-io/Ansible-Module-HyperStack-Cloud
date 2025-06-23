@@ -1,0 +1,10 @@
+{
+    "docs": "https://docs.ansible.com/ansible-core/2.18/dev_guide/testing/sanity/pep8.html", 
+    "results": [
+        {
+            "message": "The test `ansible-test sanity --test pep8` [[explain](https://docs.ansible.com/ansible-core/2.18/dev_guide/testing/sanity/pep8.html)] failed with 7 errors:", 
+            "output": ".ansible/collections/ansible_collections/hyperstack/cloud/tests/unit/plugins/modules/test_cloud_manager.py:266:29: E306: expected 1 blank line before a nested definition, found 0\n.ansible/collections/ansible_collections/hyperstack/cloud/tests/unit/plugins/modules/test_cloud_manager.py:272:29: E306: expected 1 blank line before a nested definition, found 0\n.ansible/collections/ansible_collections/hyperstack/cloud/tests/unit/plugins/modules/test_cloud_manager.py:360:1: W293: blank line contains whitespace\n.ansible/collections/ansible_collections/hyperstack/cloud/tests/unit/plugins/modules/test_cloud_manager.py:362:13: E306: expected 1 blank line before a nested definition, found 0\n.ansible/collections/ansible_collections/hyperstack/cloud/tests/unit/plugins/modules/test_cloud_manager.py:433:1: W293: blank line contains whitespace\n.ansible/collections/ansible_collections/hyperstack/cloud/tests/unit/plugins/modules/test_cloud_manager.py:479:25: W291: trailing whitespace\n.ansible/collections/ansible_collections/hyperstack/cloud/tests/unit/plugins/modules/test_cloud_manager.py:512:40: W292: no newline at end of file"
+        }
+    ], 
+    "verified": false
+}

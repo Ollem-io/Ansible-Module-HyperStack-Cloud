@@ -230,3 +230,6 @@ tests/output/
 .env.local
 .env.*.local
 .secrets/
+
+# Prevent nested git directories
+hyperstack/ansible_collections/hyperstack/cloud/.git

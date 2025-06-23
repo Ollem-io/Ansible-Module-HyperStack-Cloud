@@ -1,0 +1,80 @@
+# tests/integration/targets/cloud_manager_vm_failure/tasks/main.yml
+- name: Ensure a test environment exists
+  hyperstack.cloud.cloud_manager:
+    name: vm-failure-test-env
+    state: present
+
+- name: Block to test expected failure
+  block:
+    - name: Attempt to create a VM with a non-existent image
+      hyperstack.cloud.cloud_manager:
+        name: vm-failure-test-env
+        state: present
+        vms:
+          - name: bad-vm
+            size: small
+            image: 'nonexistent-image'
+            state: present
+      register: result_fail
+
+  rescue:
+    - name: Assert that the task failed as expected
+      ansible.builtin.assert:
+        that:
+          - result_fail.failed
+          - "'Image \\'nonexistent-image\\' not found' in result_fail.msg"
+        fail_msg: "The module did not fail with the expected error message."
+
+- name: Test successful VM creation with valid image
+  hyperstack.cloud.cloud_manager:
+    name: vm-failure-test-env
+    state: present
+    vms:
+      - name: good-vm
+        size: small
+        image: 'ubuntu-22.04'
+        state: running
+  register: result_success
+
+- name: Assert that the valid VM was created successfully
+  ansible.builtin.assert:
+    that:
+      - result_success.changed
+      - "'good-vm' in result_success.msg or 'created' in result_success.msg"
+
+- name: Test VM state transitions
+  hyperstack.cloud.cloud_manager:
+    name: vm-failure-test-env
+    state: present
+    vms:
+      - name: good-vm
+        size: small
+        image: 'ubuntu-22.04'
+        state: stopped
+  register: result_stop
+
+- name: Assert that the VM state change was detected
+  ansible.builtin.assert:
+    that:
+      - result_stop.changed
+
+- name: Test VM deletion
+  hyperstack.cloud.cloud_manager:
+    name: vm-failure-test-env
+    state: present
+    vms:
+      - name: good-vm
+        size: small
+        image: 'ubuntu-22.04'
+        state: absent
+  register: result_delete
+
+- name: Assert that the VM deletion was successful
+  ansible.builtin.assert:
+    that:
+      - result_delete.changed
+
+- name: Cleanup - Remove test environment
+  hyperstack.cloud.cloud_manager:
+    name: vm-failure-test-env
+    state: absent

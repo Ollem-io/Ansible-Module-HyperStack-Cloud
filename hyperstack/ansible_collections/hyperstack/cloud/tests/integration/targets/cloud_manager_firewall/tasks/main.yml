@@ -1,0 +1,98 @@
+# tests/integration/targets/cloud_manager_firewall/tasks/main.yml
+- name: Ensure a test environment exists without any rules
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: present
+    firewall_rules: []
+
+- name: 1. Run in CHECK mode to add a rule
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: present
+    firewall_rules:
+      - {protocol: tcp, port: 443}
+  register: result_check
+  check_mode: true # Force check_mode for this task
+
+- name: Assert that check mode reported a change and a diff
+  ansible.builtin.assert:
+    that:
+      - result_check.changed
+      - result_check.diff is defined
+      - "'tcp:443' in result_check.diff.after"
+
+- name: 2. Verify NO change was actually made
+  # This is a simulated check. A real test might use a command or another module.
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: present
+    firewall_rules: []
+  register: result_verify_no_change
+
+- name: Assert that the rule list is still empty
+  ansible.builtin.assert:
+    that:
+      - not result_verify_no_change.changed
+
+- name: 3. Run for REAL to add the rule
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: present
+    firewall_rules:
+      - {protocol: tcp, port: 443}
+  register: result_real
+
+- name: Assert that the real run reported a change
+  ansible.builtin.assert:
+    that:
+      - result_real.changed
+
+- name: 4. Run again in CHECK mode (idempotency check)
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: present
+    firewall_rules:
+      - {protocol: tcp, port: 443}
+  register: result_check_idempotent
+  check_mode: true
+
+- name: Assert that check mode now reports NO change
+  ansible.builtin.assert:
+    that:
+      - not result_check_idempotent.changed
+
+- name: 5. Test multiple rules with different order
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: present
+    firewall_rules:
+      - {protocol: udp, port: 53}
+      - {protocol: tcp, port: 443}
+      - {protocol: tcp, port: 80}
+  register: result_multiple
+
+- name: Assert multiple rules change was detected
+  ansible.builtin.assert:
+    that:
+      - result_multiple.changed
+      - result_multiple.diff is defined
+
+- name: 6. Test idempotency with same rules in different order
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: present
+    firewall_rules:
+      - {protocol: tcp, port: 80}
+      - {protocol: tcp, port: 443}
+      - {protocol: udp, port: 53}
+  register: result_reorder
+
+- name: Assert that reordered rules show no change (normalization works)
+  ansible.builtin.assert:
+    that:
+      - not result_reorder.changed
+
+- name: Cleanup - Remove test environment
+  hyperstack.cloud.cloud_manager:
+    name: firewall-test-env
+    state: absent
