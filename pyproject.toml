@@ -26,6 +26,7 @@ classifiers = [
 
 dependencies = [
     "ansible-core>=2.14.0",
+    "pytest>=8.4.1",
 ]
 
 [project.optional-dependencies]
@@ -105,7 +106,7 @@ addopts = [
     "--cov-report=xml",
     "--cov-fail-under=80",
 ]
-testpaths = ["tests"]
+testpaths = ["hyperstack/ansible_collections/hyperstack/cloud/tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --all-extras
-          uv run pip install ansible-core
+          uv add ansible-core
 
       - name: Run ansible-lint
         run: |
@@ -79,7 +79,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --all-extras
-          uv run pip install "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
+          uv add "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
 
       - name: Run unit tests
         run: |
@@ -117,7 +117,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --all-extras
-          uv run pip install ansible-core
+          uv add ansible-core
 
       - name: Run integration tests
         run: |
@@ -148,7 +148,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --all-extras
-          uv run pip install ansible-core
+          uv add ansible-core
 
       - name: Build collection
         run: |
@@ -195,7 +195,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install ansible-core
-        run: uv run pip install ansible-core
+        run: uv add ansible-core
 
       - name: Publish to Galaxy
         run: |

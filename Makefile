@@ -13,7 +13,7 @@ help: ## Show this help message
 install: ## Install dependencies
 	@echo "Installing dependencies with uv..."
 	uv sync --all-extras
-	uv run pip install ansible-core
+	uv add ansible-core
 
 test: ## Run all tests
 	@echo "Running unit tests..."
@@ -119,7 +119,7 @@ ci-local: ## Run CI pipeline locally with AMD64 enforcement (Docker-based)
 	@echo "Setting up Python 3.11 environment..."
 	uv python install 3.11
 	uv sync --all-extras
-	uv run pip install ansible-core
+	uv add ansible-core
 	@echo ""
 	@echo "=== Running Lint Stage ==="
 	@cd $(COLLECTION_PATH) && uv run ansible-lint .
@@ -133,24 +133,24 @@ ci-local: ## Run CI pipeline locally with AMD64 enforcement (Docker-based)
 	@echo "=== Running Test Stage (Python 3.9 + Ansible 2.14) ==="
 	@uv python install 3.9
 	@uv sync --all-extras
-	@uv run pip install "ansible-core>=2.14.0,<2.14.99"
+	@uv add "ansible-core>=2.14.0,<2.14.99"
 	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
 	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.9 --skip-test validate-modules
 	@echo ""
 	@echo "=== Running Test Stage (Python 3.9 + Ansible 2.17) ==="
-	@uv run pip install "ansible-core>=2.17.0,<2.17.99"
+	@uv add "ansible-core>=2.17.0,<2.17.99"
 	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
 	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.9 --skip-test validate-modules
 	@echo ""
 	@echo "=== Running Test Stage (Python 3.11 + Ansible 2.14) ==="
 	@uv python install 3.11
 	@uv sync --all-extras
-	@uv run pip install "ansible-core>=2.14.0,<2.14.99"
+	@uv add "ansible-core>=2.14.0,<2.14.99"
 	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
 	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.11 --skip-test validate-modules
 	@echo ""
 	@echo "=== Running Test Stage (Python 3.11 + Ansible 2.17) ==="
-	@uv run pip install "ansible-core>=2.17.0,<2.17.99"
+	@uv add "ansible-core>=2.17.0,<2.17.99"
 	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
 	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.11 --skip-test validate-modules
 	@echo ""
@@ -176,7 +176,7 @@ ci-local-docker: ## Run CI pipeline in Docker
 			curl -LsSf https://astral.sh/uv/install.sh | sh && \
 			export PATH=\"/root/.local/bin:\$$PATH\" && \
 			uv sync --all-extras && \
-			uv run pip install ansible-core && \
+			uv add ansible-core && \
 			make ci \
 		"
 

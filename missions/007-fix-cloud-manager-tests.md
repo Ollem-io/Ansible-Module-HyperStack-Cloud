@@ -1,7 +1,7 @@
-# Mission 008: Fix Cloud Manager Tests
+# Mission 007: Fix Cloud Manager Tests
 
 ## Mission Number
-008
+007
 
 ## Mission Title
 Fix Cloud Manager Unit Tests and Increase Coverage
