@@ -114,5 +114,72 @@ dev-setup: install ## Setup development environment
 ci: lint test build ## Run CI pipeline locally
 	@echo "CI pipeline completed successfully!"
 
+ci-local: ## Run CI pipeline locally with AMD64 enforcement (Docker-based)
+	@echo "Running CI pipeline locally with AMD64 enforcement..."
+	@echo "Setting up Python 3.11 environment..."
+	uv python install 3.11
+	uv sync --all-extras
+	uv run pip install ansible-core
+	@echo ""
+	@echo "=== Running Lint Stage ==="
+	@cd $(COLLECTION_PATH) && uv run ansible-lint .
+	@cd $(COLLECTION_PATH) && uv run yamllint .
+	@uv run black --check hyperstack/
+	@uv run flake8 hyperstack/
+	@uv run pylint hyperstack/
+	@uv run bandit -r hyperstack/
+	@uv run safety check
+	@echo ""
+	@echo "=== Running Test Stage (Python 3.9 + Ansible 2.14) ==="
+	@uv python install 3.9
+	@uv sync --all-extras
+	@uv run pip install "ansible-core>=2.14.0,<2.14.99"
+	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
+	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.9 --skip-test validate-modules
+	@echo ""
+	@echo "=== Running Test Stage (Python 3.9 + Ansible 2.17) ==="
+	@uv run pip install "ansible-core>=2.17.0,<2.17.99"
+	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
+	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.9 --skip-test validate-modules
+	@echo ""
+	@echo "=== Running Test Stage (Python 3.11 + Ansible 2.14) ==="
+	@uv python install 3.11
+	@uv sync --all-extras
+	@uv run pip install "ansible-core>=2.14.0,<2.14.99"
+	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
+	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.11 --skip-test validate-modules
+	@echo ""
+	@echo "=== Running Test Stage (Python 3.11 + Ansible 2.17) ==="
+	@uv run pip install "ansible-core>=2.17.0,<2.17.99"
+	@cd $(COLLECTION_PATH) && uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
+	@cd $(COLLECTION_PATH) && uv run ansible-test sanity --python 3.11 --skip-test validate-modules
+	@echo ""
+	@echo "=== Running Integration Tests ==="
+	@cd $(COLLECTION_PATH) && uv run ansible-test integration --python 3.11 --coverage
+	@cd $(COLLECTION_PATH) && uv run ansible-test coverage report --all --omit-files='*/test_*'
+	@echo ""
+	@echo "=== Building Collection ==="
+	@cd $(COLLECTION_PATH) && uv run ansible-galaxy collection build --force
+	@cd $(COLLECTION_PATH) && uv run ansible-galaxy collection install hyperstack-cloud-*.tar.gz --force
+	@uv run ansible-doc hyperstack.cloud.cloud_manager
+	@echo ""
+	@echo "Local CI pipeline with AMD64 enforcement completed successfully!"
+
+ci-local-docker: ## Run CI pipeline in Docker with AMD64 platform enforcement
+	@echo "Running CI pipeline in Docker with AMD64 platform enforcement..."
+	@docker run --rm -it \
+		--platform linux/amd64 \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		python:3.11-slim-bullseye \
+		/bin/bash -c " \
+			apt-get update && apt-get install -y git curl && \
+			curl -LsSf https://astral.sh/uv/install.sh | sh && \
+			export PATH=\"/root/.cargo/bin:\$$PATH\" && \
+			uv sync --all-extras && \
+			uv run pip install ansible-core && \
+			make ci \
+		"
+
 all: clean install lint test build ## Run complete workflow
 	@echo "Complete workflow finished!"

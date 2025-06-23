@@ -54,7 +54,7 @@ jobs:
           uv run safety check
 
   test:
-    name: Test
+    name: "Test - Python: ${{ matrix.python-version }} - Ansible: ${{ matrix.ansible-version }}"
     runs-on: ubuntu-latest
     strategy:
       matrix:
