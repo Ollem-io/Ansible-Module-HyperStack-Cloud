@@ -8,8 +8,6 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-from ansible.module_utils.basic import AnsibleModule
-
 ANSIBLE_METADATA = {
     "metadata_version": "1.1",
     "status": ["preview"],
@@ -223,32 +221,59 @@ failed:
     returned: when module encounters an error
 """
 
-# This is a mock database to simulate the state of the cloud.
-# In a real module, this data would come from an API call.
-_CLOUD_ENVIRONMENTS = {
-    "production": {"id": "env-123", "status": "active"},
-}
+import os
+import json
+import tempfile
+from ansible.module_utils.basic import AnsibleModule
 
 # Set of valid images to simulate an API constraint
 _VALID_IMAGES = {"ubuntu-22.04", "rhel-9"}
 
+# File-based persistence for mock state (needed for idempotency testing)
+_STATE_FILE = os.path.join(tempfile.gettempdir(), "hyperstack_mock_state.json")
+
+
+def _load_state():
+    """Load mock state from file."""
+    if os.path.exists(_STATE_FILE):
+        try:
+            with open(_STATE_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return {"production": {"id": "env-123", "status": "active"}}
+
+
+def _save_state(state):
+    """Save mock state to file."""
+    try:
+        with open(_STATE_FILE, 'w') as f:
+            json.dump(state, f)
+    except IOError:
+        pass
+
 
 def get_environment(name):
     """Simulates fetching an environment from the cloud API."""
-    return _CLOUD_ENVIRONMENTS.get(name)
+    state = _load_state()
+    return state.get(name)
 
 
 def create_environment(name):
     """Simulates creating a new environment."""
-    print(f"SIMULATING: Creating environment '{name}'")
-    _CLOUD_ENVIRONMENTS[name] = {"id": f"env-{hash(name)}", "status": "active"}
+    # In a real module, this would be an API call
+    state = _load_state()
+    state[name] = {"id": f"env-{hash(name)}", "status": "active"}
+    _save_state(state)
 
 
 def delete_environment(name):
     """Simulates deleting an environment."""
-    print(f"SIMULATING: Deleting environment '{name}'")
-    if name in _CLOUD_ENVIRONMENTS:
-        del _CLOUD_ENVIRONMENTS[name]
+    # In a real module, this would be an API call
+    state = _load_state()
+    if name in state:
+        del state[name]
+    _save_state(state)
 
 
 def _normalize_rules(rules):
@@ -270,23 +295,45 @@ def create_vm(env_name, vm_spec):
     """Simulates creating a VM, with potential for failure."""
     if vm_spec["image"] not in _VALID_IMAGES:
         raise ValueError(f"Image '{vm_spec['image']}' not found.")
-    print(f"SIMULATING: Creating VM '{vm_spec['name']}' in env '{env_name}'")
-    # In a real module, this would add the VM to the environment state
+
+    state = _load_state()
+    if env_name in state:
+        if "vms" not in state[env_name]:
+            state[env_name]["vms"] = {}
+        state[env_name]["vms"][vm_spec["name"]] = {
+            "name": vm_spec["name"],
+            "size": vm_spec["size"],
+            "image": vm_spec["image"],
+            "status": "running"
+        }
+        _save_state(state)
 
 
 def delete_vm(env_name, vm_name):
     """Simulates deleting a VM."""
-    print(f"SIMULATING: Deleting VM '{vm_name}' from env '{env_name}'")
+
+    state = _load_state()
+    if env_name in state and "vms" in state[env_name] and vm_name in state[env_name]["vms"]:
+        del state[env_name]["vms"][vm_name]
+        _save_state(state)
 
 
 def start_vm(env_name, vm_name):
     """Simulates starting a VM."""
-    print(f"SIMULATING: Starting VM '{vm_name}' in env '{env_name}'")
+
+    state = _load_state()
+    if env_name in state and "vms" in state[env_name] and vm_name in state[env_name]["vms"]:
+        state[env_name]["vms"][vm_name]["status"] = "running"
+        _save_state(state)
 
 
 def stop_vm(env_name, vm_name):
     """Simulates stopping a VM."""
-    print(f"SIMULATING: Stopping VM '{vm_name}' in env '{env_name}'")
+
+    state = _load_state()
+    if env_name in state and "vms" in state[env_name] and vm_name in state[env_name]["vms"]:
+        state[env_name]["vms"][vm_name]["status"] = "stopped"
+        _save_state(state)
 
 
 def main():
@@ -337,6 +384,9 @@ def main():
             create_environment(name)
         result["changed"] = True
         result["msg"] = f"Environment '{name}' created successfully."
+    elif state == "present" and current_env is not None:
+        # Environment already exists, no change needed
+        pass
     elif state == "absent" and current_env is not None:
         if not module.check_mode:
             delete_environment(name)
@@ -361,14 +411,10 @@ def main():
             }
             if not module.check_mode:
                 # In a real module, this would be an API call to set the rules
-                print(f"SIMULATING: Setting firewall rules for '{name}'")
-                if current_env:
-                    current_env["rules"] = desired_rules
-                else:
-                    # If environment was just created, we need to get it again
-                    current_env = get_environment(name)
-                    if current_env:
-                        current_env["rules"] = desired_rules
+                state = _load_state()
+                if name in state:
+                    state[name]["rules"] = desired_rules
+                    _save_state(state)
             if not result.get("msg"):
                 result["msg"] = f"Firewall rules updated for environment '{name}'."
 
@@ -387,15 +433,6 @@ def main():
                     # Create new VM
                     if not module.check_mode:
                         create_vm(name, vm_spec)
-                        if name in _CLOUD_ENVIRONMENTS:
-                            if "vms" not in _CLOUD_ENVIRONMENTS[name]:
-                                _CLOUD_ENVIRONMENTS[name]["vms"] = {}
-                            _CLOUD_ENVIRONMENTS[name]["vms"][vm_name] = {
-                                "name": vm_name,
-                                "size": vm_spec["size"],
-                                "image": vm_spec["image"],
-                                "status": ("running" if vm_state == "running" else "stopped"),
-                            }
                     result["changed"] = True
                     if not result.get("msg"):
                         result["msg"] = f"VM '{vm_name}' created in environment '{name}'."
@@ -404,8 +441,6 @@ def main():
                     # Start existing VM
                     if not module.check_mode:
                         start_vm(name, vm_name)
-                        if current_vm:
-                            current_vm["status"] = "running"
                     result["changed"] = True
                     if not result.get("msg"):
                         result["msg"] = f"VM '{vm_name}' started in environment '{name}'."
@@ -414,8 +449,6 @@ def main():
                     # Stop existing VM
                     if not module.check_mode:
                         stop_vm(name, vm_name)
-                        if current_vm:
-                            current_vm["status"] = "stopped"
                     result["changed"] = True
                     if not result.get("msg"):
                         result["msg"] = f"VM '{vm_name}' stopped in environment '{name}'."
@@ -424,8 +457,6 @@ def main():
                     # Delete VM
                     if not module.check_mode:
                         delete_vm(name, vm_name)
-                        if vm_name in current_vms:
-                            del current_vms[vm_name]
                     result["changed"] = True
                     if not result.get("msg"):
                         result["msg"] = f"VM '{vm_name}' deleted from environment '{name}'."

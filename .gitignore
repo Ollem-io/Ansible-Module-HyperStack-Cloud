@@ -235,7 +235,7 @@ tests/output/
 hyperstack/ansible_collections/hyperstack/cloud/.git
 
 # Coverage report
-hyperstack/ansible_collections/hyperstack/cloud/tests/output/coverage/
+hyperstack/ansible_collections/hyperstack/cloud/tests/output
 
 # output
 output/
