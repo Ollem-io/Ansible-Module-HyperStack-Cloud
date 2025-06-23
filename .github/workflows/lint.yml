@@ -1,0 +1,92 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Mondays
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.11 -q
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras -q
+          uv add ansible-core -q
+
+      - name: Run ansible-lint
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run ansible-lint .
+
+      - name: Run yamllint
+        run: |
+          cd hyperstack/ansible_collections/hyperstack/cloud
+          uv run yamllint .
+
+      - name: Run Python linting
+        run: |
+          uv run black --check hyperstack/
+          uv run flake8 hyperstack/
+          uv run pylint hyperstack/
+
+      - name: Run security scan
+        run: |
+          uv run bandit -r hyperstack/
+          uv run safety check
+
+  test:
+    name: "Test - Python: ${{ matrix.python-version }} - Ansible: ${{ matrix.ansible-version }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+        ansible-version: ['2.17']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras -q
+          uv add "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99" -q
+
+      - name: Run sanity tests
+        working-directory: hyperstack/ansible_collections/hyperstack/cloud
+        run: |
+          uv run ansible-test sanity --python ${{ matrix.python-version }} --skip-test validate-modules
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.11' && matrix.ansible-version == '2.15'
+        with:
+          file: ./hyperstack/ansible_collections/hyperstack/cloud/coverage.xml
+          flags: unittests
+          name: codecov-umbrella

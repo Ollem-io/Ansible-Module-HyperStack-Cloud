@@ -10,48 +10,6 @@ on:
     - cron: '0 6 * * 1'  # Weekly on Mondays
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-
-      - name: Set up Python
-        run: uv python install 3.11
-
-      - name: Install dependencies
-        run: |
-          uv sync --all-extras
-          uv add ansible-core
-
-      - name: Run ansible-lint
-        run: |
-          cd hyperstack/ansible_collections/hyperstack/cloud
-          uv run ansible-lint .
-
-      - name: Run yamllint
-        run: |
-          cd hyperstack/ansible_collections/hyperstack/cloud
-          uv run yamllint .
-
-      - name: Run Python linting
-        run: |
-          uv run black --check hyperstack/
-          uv run flake8 hyperstack/
-          uv run pylint hyperstack/
-
-      - name: Run security scan
-        run: |
-          uv run bandit -r hyperstack/
-          uv run safety check
 
   test:
     name: "Test - Python: ${{ matrix.python-version }} - Ansible: ${{ matrix.ansible-version }}"
@@ -75,17 +33,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --all-extras
-          uv add "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
+          uv sync --all-extras -q
+          uv add "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99" -q
 
       - name: Run unit tests
         run: |
           uv run pytest  -v --cov=plugins --cov-report=xml
-
-      - name: Run sanity tests
-        working-directory: hyperstack/ansible_collections/hyperstack/cloud
-        run: |
-          uv run ansible-test sanity --python ${{ matrix.python-version }} --skip-test validate-modules
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -112,8 +65,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --all-extras
-          uv add ansible-core
+          uv sync --all-extras -q
+          uv add ansible-core -q
 
       - name: Run integration tests
         run: |
@@ -128,7 +81,7 @@ jobs:
   build:
     name: Build Collection
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -143,8 +96,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --all-extras
-          uv add ansible-core
+          uv sync --all-extras -q
+          uv add ansible-core -q
 
       - name: Build collection
         run: |
@@ -170,7 +123,7 @@ jobs:
   publish:
     name: Publish to Galaxy
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, integration]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
@@ -191,7 +144,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install ansible-core
-        run: uv add ansible-core
+        run: uv add ansible-core -q
 
       - name: Publish to Galaxy
         run: |
