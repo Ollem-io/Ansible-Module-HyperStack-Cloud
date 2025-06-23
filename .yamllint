@@ -1,0 +1,22 @@
+extends: default
+
+ignore: |
+  .venv/
+  venv/
+  .git/
+  __pycache__/
+  *.egg-info/
+  build/
+  dist/
+  .tox/
+  .ansible/
+
+rules:
+  line-length:
+    max: 120
+  comments:
+    min-spaces-from-content: 1
+  document-start:
+    present: false
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no']

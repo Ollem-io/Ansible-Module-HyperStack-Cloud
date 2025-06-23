@@ -39,7 +39,7 @@ lint: ## Run linting tools
 	@echo "Running ansible-lint..."
 	cd $(COLLECTION_PATH) && uv run ansible-lint .
 	@echo "Running yamllint..."
-	cd $(COLLECTION_PATH) && uv run yamllint .
+	uv run yamllint .
 	@echo "Running Python linting..."
 	uv run black --check hyperstack/
 	uv run flake8 hyperstack/
@@ -165,17 +165,16 @@ ci-local: ## Run CI pipeline locally with AMD64 enforcement (Docker-based)
 	@echo ""
 	@echo "Local CI pipeline with AMD64 enforcement completed successfully!"
 
-ci-local-docker: ## Run CI pipeline in Docker with AMD64 platform enforcement
-	@echo "Running CI pipeline in Docker with AMD64 platform enforcement..."
+ci-local-docker: ## Run CI pipeline in Docker
+	@echo "Running CI pipeline in Docker..."
 	@docker run --rm \
-		--platform linux/amd64 \
 		-v $(PWD):/workspace \
 		-w /workspace \
 		python:3.11-slim-bullseye \
 		/bin/bash -c " \
-			apt-get update && apt-get install -y git curl && \
+			apt-get update && apt-get install -y git curl make && \
 			curl -LsSf https://astral.sh/uv/install.sh | sh && \
-			export PATH=\"/root/.cargo/bin:\$$PATH\" && \
+			export PATH=\"/root/.local/bin:\$$PATH\" && \
 			uv sync --all-extras && \
 			uv run pip install ansible-core && \
 			make ci \

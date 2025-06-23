@@ -1,0 +1,25 @@
+---
+profile: production
+
+exclude_paths:
+  - .venv/
+  - venv/
+  - .git/
+  - __pycache__/
+  - "*.egg-info/"
+  - build/
+  - dist/
+  - .tox/
+  - .pytest_cache/
+  - .mypy_cache/
+
+skip_list:
+  - yaml[line-length]  # Allow longer lines in YAML files
+  - var-naming[no-role-prefix]  # Allow variables without role prefix
+
+warn_list:
+  - experimental  # Warn about experimental rules
+
+use_default_rules: true
+
+verbosity: 1

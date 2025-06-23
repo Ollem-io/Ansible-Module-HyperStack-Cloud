@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 120
+exclude = 
+    .venv,
+    venv,
+    .git,
+    __pycache__,
+    *.egg-info,
+    build,
+    dist,
+    .tox,
+    .pytest_cache,
+    .mypy_cache

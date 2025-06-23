@@ -202,3 +202,25 @@ Thumbs.db
 *.temp
 tmp/
 temp/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Ansible
+.ansible/
+
+# Ansible test output
+tests/output/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Ansible
+.ansible/
+
+# Ansible test output
+tests/output/

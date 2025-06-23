@@ -71,10 +71,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/dsmello/hyperstack-cloud-ansible"
+Homepage = "https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud"
 Documentation = "https://hyperstack-cloud-ansible.readthedocs.io/"
-Repository = "https://github.com/dsmello/hyperstack-cloud-ansible.git"
-"Bug Tracker" = "https://github.com/dsmello/hyperstack-cloud-ansible/issues"
+Repository = "https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud.git"
+"Bug Tracker" = "https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/issues"
 
 [build-system]
 requires = ["hatchling>=1.13.0"]
@@ -201,8 +201,22 @@ max-line-length = 120
 
 # Bandit security linting
 [tool.bandit]
-exclude_dirs = ["tests", "test_*"]
+exclude_dirs = ["tests", "test_*", ".venv", "venv"]
 skips = ["B101", "B601"]
+
+# Flake8 configuration
+[tool.flake8]
+max-line-length = 120
+exclude = [
+    ".venv",
+    "venv",
+    ".git",
+    "__pycache__",
+    "*.egg-info",
+    "build",
+    "dist",
+    ".tox"
+]
 
 [dependency-groups]
 ci = [

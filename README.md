@@ -1,6 +1,6 @@
 # Hyperstack Cloud Ansible Collection
 
-[![CI](https://github.com/dsmello/hyperstack-cloud-ansible/workflows/CI/badge.svg)](https://github.com/dsmello/hyperstack-cloud-ansible/actions)
+[![CI](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/workflows/CI/badge.svg)](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/actions)
 [![Ansible Galaxy](https://img.shields.io/badge/galaxy-hyperstack.cloud-660198.svg)](https://galaxy.ansible.com/hyperstack/cloud)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
@@ -55,7 +55,7 @@ ansible-galaxy collection install hyperstack.cloud
 
 ```bash
 # Clone the repository
-git clone https://github.com/dsmello/hyperstack-cloud-ansible.git
+git clone https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud.git
 cd hyperstack-cloud-ansible
 
 # Build the collection
@@ -70,7 +70,7 @@ ansible-galaxy collection install hyperstack-cloud-*.tar.gz --force
 
 ```bash
 # Clone and setup development environment
-git clone https://github.com/dsmello/hyperstack-cloud-ansible.git
+git clone https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud.git
 cd hyperstack-cloud-ansible
 
 # Install with uv (recommended)
@@ -283,7 +283,7 @@ tests/
 
 ```bash
 # Clone repository
-git clone https://github.com/dsmello/hyperstack-cloud-ansible.git
+git clone https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud.git
 cd hyperstack-cloud-ansible
 
 # Setup development environment
@@ -344,8 +344,8 @@ AI Assistant:
 ### Getting Help
 
 - 📧 Email: [davi@ollem.io](mailto:davi@ollem.io)
-- 🐛 Issues: [GitHub Issues](https://github.com/dsmello/hyperstack-cloud-ansible/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/dsmello/hyperstack-cloud-ansible/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/discussions)
 - 📚 Documentation: [Read the Docs](https://hyperstack-cloud-ansible.readthedocs.io)
 
 ### Reporting Issues
@@ -369,7 +369,7 @@ This project is licensed under the GNU General Public License v3.0 or later - se
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dsmello/hyperstack-cloud-ansible&type=Date)](https://star-history.com/#dsmello/hyperstack-cloud-ansible&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Ollem-io/Ansible-Module-HyperStack-Cloud&type=Date)](https://star-history.com/#Ollem-io/Ansible-Module-HyperStack-Cloud&Date)
 
 ---
 
