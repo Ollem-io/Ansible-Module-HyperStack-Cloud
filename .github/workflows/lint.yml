@@ -53,8 +53,8 @@ jobs:
           uv run bandit -r hyperstack/
           uv run safety check
 
-  test:
-    name: "Test - Python: ${{ matrix.python-version }} - Ansible: ${{ matrix.ansible-version }}"
+  sanity:
+    name: "Sanity - Python: ${{ matrix.python-version }} - Ansible: ${{ matrix.ansible-version }}"
     runs-on: ubuntu-latest
     strategy:
       matrix:

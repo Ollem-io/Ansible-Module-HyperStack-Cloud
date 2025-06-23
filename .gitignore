@@ -224,3 +224,9 @@ env/
 
 # Ansible test output
 tests/output/
+
+# Secrets and Configuration
+.env
+.env.local
+.env.*.local
+.secrets/
