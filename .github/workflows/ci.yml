@@ -58,8 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10']
-        ansible-version: ['2.15']
+        python-version: ['3.11']
+        ansible-version: ['2.17']
 
     steps:
       - name: Checkout code
@@ -80,12 +80,11 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cd hyperstack/ansible_collections/hyperstack/cloud
-          uv run python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml
+          uv run pytest  -v --cov=plugins --cov-report=xml
 
       - name: Run sanity tests
+        working-directory: hyperstack/ansible_collections/hyperstack/cloud
         run: |
-          cd hyperstack/ansible_collections/hyperstack/cloud
           uv run ansible-test sanity --python ${{ matrix.python-version }} --skip-test validate-modules
 
       - name: Upload coverage to Codecov
