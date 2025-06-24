@@ -28,6 +28,9 @@ format: ## Format code
 	$(PYTHON) black hyperstack/
 	$(PYTHON) isort hyperstack/
 
+ansible-doc: ## Generate module documentation
+	cd $(COLLECTION_PATH) && $(PYTHON) ansible-doc -t module hyperstack.cloud.cloud_manager
+
 build: ## Build collection
 	cd $(COLLECTION_PATH) && $(PYTHON) ansible-galaxy collection build --force
 

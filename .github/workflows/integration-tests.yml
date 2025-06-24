@@ -1,11 +1,21 @@
 name: Integration Tests
 
 on:
-  push:
-    branches: [ main, 'feature/*', '*-*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+env:
+  API_KEY_HYPER_STACK: ${{ secrets.API_KEY_HYPER_STACK }}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   integration-tests:
