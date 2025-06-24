@@ -74,7 +74,7 @@ jobs:
       - name: Generate coverage report
         run: |
           cd hyperstack/ansible_collections/hyperstack/cloud
-          uv run ansible-test coverage report --all --omit-files='*/test_*'
+          uv run ansible-test coverage report --all
 
   build:
     name: Build Collection
