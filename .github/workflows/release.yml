@@ -128,8 +128,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
-          uv pip install ansible pytest pytest-cov pytest-mock
+          uv venv --python ${{ matrix.python-version }}
+          uv sync --all-extras -q
+          uv add "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99" -q
+          uv add ansible pytest pytest-cov pytest-mock -q
 
       - name: Run ansible-test sanity
         continue-on-error: true
@@ -208,7 +210,11 @@ jobs:
           enable-cache: true
 
       - name: Install Ansible
-        run: uv pip install ansible-core
+        run: |
+          uv venv --python ${{ env.PYTHON_VERSION }}
+          uv sync --all-extras -q
+          uv add "ansible-core>=${{ env.ANSIBLE_VERSION }}.0,<${{ env.ANSIBLE_VERSION }}.99" -q
+          uv add ansible -q
 
       - name: Update collection version in galaxy.yml
         run: |
@@ -265,7 +271,10 @@ jobs:
 
       - name: Install dependencies and collection
         run: |
-          uv pip install ansible-core
+          uv venv --python ${{ env.PYTHON_VERSION }}
+          uv sync --all-extras -q
+          uv add "ansible-core>=${{ env.ANSIBLE_VERSION }}.0,<${{ env.ANSIBLE_VERSION }}.99" -q
+          uv add ansible -q
           ansible-galaxy collection install ${{ needs.build.outputs.artifact-name }} --force
 
       - name: Run integration tests
