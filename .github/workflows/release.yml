@@ -120,24 +120,24 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
 
       - name: Install dependencies
         run: |
-          uv pip install "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
-          uv pip install ansible pytest pytest-cov pytest-mock
+          uv add "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
+          uv add ansible pytest pytest-cov pytest-mock
 
       - name: Run ansible-test sanity
         run: |
-          source .venv/bin/activate
+          source <(uv venv --quiet)
           cd ${{ env.COLLECTION_ROOT }}
           ansible-test sanity --python ${{ matrix.python-version }} --verbose
 
       - name: Run unit tests and generate coverage report
         run: |
-          source .venv/bin/activate
+          source <(uv venv --quiet)
           cd ${{ env.COLLECTION_ROOT }}
           pytest tests/unit/ -v --cov=plugins --cov-report=xml --cov-report=term
 
@@ -200,12 +200,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
 
       - name: Install Ansible
-        run: uv pip install ansible-core
+        run: uv add ansible-core
 
       - name: Update collection version in galaxy.yml
         run: |
@@ -215,6 +215,7 @@ jobs:
       - name: Build collection
         id: build_collection
         run: |
+          source <(uv venv --quiet)
           cd ${{ env.COLLECTION_ROOT }}
           ansible-galaxy collection build --force --verbose
           
@@ -256,20 +257,21 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
 
       - name: Install dependencies and collection
         run: |
-          uv pip install ansible-core
+          uv add ansible-core
+          source <(uv venv --quiet)
           ansible-galaxy collection install ${{ needs.build.outputs.artifact-name }} --force
 
       - name: Run integration tests
         env:
           API_KEY_HYPER_STACK: ${{ secrets.API_KEY_HYPER_STACK }}
         run: |
-          source .venv/bin/activate
+          source <(uv venv --quiet)
           ansible-playbook tests/integration_test_cloud_provider.yml -v
 
   # =================================================================
