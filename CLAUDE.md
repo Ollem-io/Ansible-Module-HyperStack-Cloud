@@ -62,6 +62,7 @@ AI Assistant:
 ## Feature Development Memories
 
 - After a new feature must check if the logs are consistent and working with a valid config.
+- Use the gh cli to interact with the gh
 
 ## Code Style and Standards
 
