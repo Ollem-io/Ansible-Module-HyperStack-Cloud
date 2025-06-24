@@ -42,10 +42,11 @@ jobs:
         uv add ansible-core
         uv add ansible
 
-    - name: Set up Ansible collection
+    - name: Install Ansible collection
       run: |
-        mkdir -p ~/.ansible/collections/ansible_collections
-        ln -s $(pwd)/hyperstack ~/.ansible/collections/ansible_collections/
+        source <(uv venv --quiet)
+        ansible-galaxy collection build hyperstack/ansible_collections/hyperstack/cloud
+        ansible-galaxy collection install hyperstack-cloud-*.tar.gz
 
     - name: Run integration tests
       env:
