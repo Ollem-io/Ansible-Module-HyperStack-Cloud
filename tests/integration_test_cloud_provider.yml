@@ -4,16 +4,16 @@
   gather_facts: no
   vars:
     api_key: "{{ lookup('env', 'API_KEY_HYPER_STACK') }}"
-  
+
   tasks:
     - name: Test 1 - Check if environment 'ansible-test' exists (expect success)
       hyperstack.cloud.cloud_manager:
         name: "ansible-test"
         state: present
       register: env_exists_result
-      
+
     - name: Verify environment 'ansible-test' exists
-      assert:
+      ansible.builtin.assert:
         that:
           - env_exists_result is succeeded
           - env_exists_result.name == "ansible-test"
@@ -25,10 +25,10 @@
         name: "bad-ansible-test"
         state: present
       register: env_not_exists_result
-      ignore_errors: yes
-      
+      failed_when: false
+
     - name: Verify environment 'bad-ansible-test' operation (simulated - will succeed in mock)
-      debug:
+      ansible.builtin.debug:
         msg: "Environment 'bad-ansible-test' test completed (mock environment will create it)"
 
     - name: Test 3 - Create firewall rules with port 443
@@ -39,9 +39,9 @@
           - protocol: tcp
             port: 443
       register: firewall_create_result
-      
+
     - name: Verify firewall creation
-      assert:
+      ansible.builtin.assert:
         that:
           - firewall_create_result is succeeded
           - firewall_create_result.changed == true
@@ -58,9 +58,9 @@
           - protocol: tcp
             port: 22
       register: firewall_add_ssh_result
-      
+
     - name: Verify SSH port addition
-      assert:
+      ansible.builtin.assert:
         that:
           - firewall_add_ssh_result is succeeded
           - firewall_add_ssh_result.changed == true
@@ -75,9 +75,9 @@
           - protocol: tcp
             port: 22
       register: firewall_delete_result
-      
+
     - name: Verify firewall deletion
-      assert:
+      ansible.builtin.assert:
         that:
           - firewall_delete_result is succeeded
           - firewall_delete_result.changed == true
@@ -90,9 +90,9 @@
         state: present
         firewall_rules: []
       register: firewall_list_result
-      
+
     - name: Verify firewall list operation
-      assert:
+      ansible.builtin.assert:
         that:
           - firewall_list_result is succeeded
         fail_msg: "Failed to clear firewall rules"
@@ -108,9 +108,9 @@
             image: "ubuntu-22.04"
             state: running
       register: vm_info_result
-      
+
     - name: Verify VM creation/info
-      assert:
+      ansible.builtin.assert:
         that:
           - vm_info_result is succeeded
         fail_msg: "Failed to get/create VM information"
@@ -126,9 +126,9 @@
             image: "ubuntu-22.04"
             state: stopped
       register: vm_stop_result
-      
+
     - name: Verify VM state change
-      assert:
+      ansible.builtin.assert:
         that:
           - vm_stop_result is succeeded
           - vm_stop_result.changed == true
@@ -145,9 +145,9 @@
             image: "ubuntu-22.04"
             state: running
       register: vm_start_result
-      
+
     - name: Verify VM restart
-      assert:
+      ansible.builtin.assert:
         that:
           - vm_start_result is succeeded
           - vm_start_result.changed == true
@@ -164,9 +164,9 @@
             image: "ubuntu-22.04"
             state: absent
       register: vm_remove_result
-      
+
     - name: Verify VM removal
-      assert:
+      ansible.builtin.assert:
         that:
           - vm_remove_result is succeeded
           - vm_remove_result.changed == true
@@ -177,9 +177,8 @@
       hyperstack.cloud.cloud_manager:
         name: "bad-ansible-test"
         state: absent
-      ignore_errors: yes
+      failed_when: false
 
     - name: Summary of integration tests
       ansible.builtin.debug:
         msg: "All integration tests completed successfully!"
-
