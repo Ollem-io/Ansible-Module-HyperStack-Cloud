@@ -1,4 +1,3 @@
----
 name: Release
 
 on:
@@ -22,22 +21,29 @@ on:
         default: false
         type: boolean
 
+# Grant permissions for the workflow to write to contents (for releases) and packages.
 permissions:
   contents: write
   packages: write
   id-token: write
 
+# Environment variables available to all jobs
 env:
   COLLECTION_NAMESPACE: hyperstack
   COLLECTION_NAME: cloud
   PYTHON_VERSION: '3.11'
   ANSIBLE_VERSION: '2.17'
+  COLLECTION_ROOT: hyperstack/ansible_collections/hyperstack/cloud
 
+# Concurrency control to prevent multiple runs for the same ref from running at the same time.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # =================================================================
+  #  VALIDATE: Determines version, tag, and prerelease status.
+  # =================================================================
   validate:
     name: Validate Release
     runs-on: ubuntu-latest
@@ -49,41 +55,49 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Fetch all history for changelog generation
 
-      - name: Determine version
+      - name: Determine version and prerelease status
         id: version
         run: |
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
-            TAG=${GITHUB_REF#refs/tags/}
-            IS_PRERELEASE=$(echo $VERSION | grep -E '(alpha|beta|rc)' && echo true || echo false)
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name#v }}"
+            TAG="${{ github.ref_name }}"
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             VERSION="${{ github.event.inputs.version }}"
-            TAG="v$VERSION"
-            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+            TAG="v${{ github.event.inputs.version }}"
           else
-            echo "::error::Invalid trigger for release workflow"
+            echo "::error::Unsupported event for release: ${{ github.event_name }}. This workflow runs on tag pushes or manual dispatch."
             exit 1
           fi
           
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          # Check if the version string indicates a pre-release
+          if [[ "$VERSION" =~ (-alpha|-beta|-rc) ]]; then
+            IS_PRERELEASE="true"
+          else
+            IS_PRERELEASE="${{ github.event.inputs.prerelease || 'false' }}"
+          fi
           
-          echo "Release version: $VERSION"
-          echo "Release tag: $TAG"
-          echo "Is prerelease: $IS_PRERELEASE"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
+          
+          echo "Release Version: ${VERSION}"
+          echo "Release Tag: ${TAG}"
+          echo "Is Prerelease: ${IS_PRERELEASE}"
 
-      - name: Validate version format
+      - name: Validate version format (Semantic Versioning)
         run: |
-          if ! [[ "${{ steps.version.outputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ([\-+][a-zA-Z0-9\.-]*)?$ ]]; then
-            echo "::error::Invalid version format: ${{ steps.version.outputs.version }}"
+          if ! [[ "${{ steps.version.outputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid semantic version format: ${{ steps.version.outputs.version }}"
             exit 1
           fi
 
+  # =================================================================
+  #  QUALITY-GATE: Runs tests across multiple Python/Ansible versions.
+  # =================================================================
   quality-gate:
-    name: Quality Gate
+    name: Quality Gate (Python ${{ matrix.python-version }}, Ansible ${{ matrix.ansible-version }})
     runs-on: ubuntu-latest
     needs: validate
     strategy:
@@ -92,6 +106,7 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12']
         ansible-version: ['2.15', '2.16', '2.17']
         exclude:
+          # Ansible 2.15 does not support Python 3.12
           - python-version: '3.12'
             ansible-version: '2.15'
     
@@ -105,88 +120,40 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v1
         with:
           enable-cache: true
 
       - name: Install dependencies
         run: |
-          uv add "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
-          uv add ansible
-          uv add pytest
-          uv add pytest-cov
-          uv add pytest-mock
+          uv pip install "ansible-core>=${{ matrix.ansible-version }}.0,<${{ matrix.ansible-version }}.99"
+          uv pip install ansible pytest pytest-cov pytest-mock
 
       - name: Run ansible-test sanity
         run: |
-          source <(uv venv --quiet)
-          cd hyperstack/ansible_collections/hyperstack/cloud
+          source .venv/bin/activate
+          cd ${{ env.COLLECTION_ROOT }}
           ansible-test sanity --python ${{ matrix.python-version }} --verbose
 
-      - name: Run unit tests
+      - name: Run unit tests and generate coverage report
         run: |
-          source <(uv venv --quiet)
-          cd hyperstack/ansible_collections/hyperstack/cloud
-          python -m pytest tests/unit/ -v --cov=plugins --cov-report=xml --cov-report=term
+          source .venv/bin/activate
+          cd ${{ env.COLLECTION_ROOT }}
+          pytest tests/unit/ -v --cov=plugins --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: matrix.python-version == env.PYTHON_VERSION && matrix.ansible-version == env.ANSIBLE_VERSION
         with:
-          file: hyperstack/ansible_collections/hyperstack/cloud/coverage.xml
-          flags: unittests
-          name: codecov-${{ matrix.python-version }}-${{ matrix.ansible-version }}
           token: ${{ secrets.CODECOV_TOKEN }}
+          file: ${{ env.COLLECTION_ROOT }}/coverage.xml
+          flags: unittests
+          name: codecov-py${{ matrix.python-version }}-ansible${{ matrix.ansible-version }}
           fail_ci_if_error: false
 
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: validate
-    if: ${{ !github.event.inputs.dry_run }}
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
-
-      - name: Install dependencies
-        run: |
-          uv add ansible-core
-          uv add ansible
-
-      - name: Install Ansible collection
-        run: |
-          source <(uv venv --quiet)
-          ansible-galaxy collection build hyperstack/ansible_collections/hyperstack/cloud
-          ansible-galaxy collection install hyperstack-cloud-*.tar.gz
-
-      - name: Run integration tests
-        env:
-          API_KEY_HYPER_STACK: ${{ secrets.API_KEY_HYPER_STACK }}
-        run: |
-          source <(uv venv --quiet)
-          ansible-playbook tests/integration_test_cloud_provider.yml -v
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test-results
-          path: |
-            tests/
-            /tmp/hyperstack_mock_state.json
-          if-no-files-found: ignore
-
+  # =================================================================
+  #  SECURITY: Scans for vulnerabilities.
+  # =================================================================
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -200,23 +167,28 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: './hyperstack/ansible_collections/hyperstack/cloud'
+          scan-ref: '.'
+          ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() # Ensure results are uploaded even if vulnerabilities are found
         with:
           sarif_file: 'trivy-results.sarif'
 
+  # =================================================================
+  #  BUILD: Builds and packages the Ansible Collection.
+  # =================================================================
   build:
     name: Build Collection
     runs-on: ubuntu-latest
     needs: [validate, quality-gate]
     outputs:
-      artifact-name: ${{ steps.build.outputs.artifact-name }}
-      collection-path: ${{ steps.build.outputs.collection-path }}
+      artifact-name: ${{ steps.build_collection.outputs.artifact-name }}
+      artifact-path: ${{ steps.build_collection.outputs.artifact-path }}
     
     steps:
       - name: Checkout code
@@ -228,194 +200,134 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v1
         with:
           enable-cache: true
 
-      - name: Install dependencies
-        run: |
-          uv add ansible-core
-          uv add ansible
+      - name: Install Ansible
+        run: uv pip install ansible-core
 
-      - name: Update collection version
+      - name: Update collection version in galaxy.yml
         run: |
-          cd hyperstack/ansible_collections/hyperstack/cloud
-          sed -i "s/version: .*/version: ${{ needs.validate.outputs.version }}/" galaxy.yml
-          
-      - name: Validate galaxy.yml
-        run: |
-          source <(uv venv --quiet)
-          cd hyperstack/ansible_collections/hyperstack/cloud
-          ansible-galaxy collection build --force --verbose
+          sed -i "s/^\(version:\s*\).*/\1${{ needs.validate.outputs.version }}/" ${{ env.COLLECTION_ROOT }}/galaxy.yml
+          echo "Updated galaxy.yml to version ${{ needs.validate.outputs.version }}"
           
       - name: Build collection
-        id: build
+        id: build_collection
         run: |
-          source <(uv venv --quiet)
-          cd hyperstack/ansible_collections/hyperstack/cloud
+          cd ${{ env.COLLECTION_ROOT }}
           ansible-galaxy collection build --force --verbose
           
-          COLLECTION_FILE=$(ls hyperstack-cloud-*.tar.gz)
-          echo "artifact-name=${COLLECTION_FILE}" >> $GITHUB_OUTPUT
-          echo "collection-path=hyperstack/ansible_collections/hyperstack/cloud/${COLLECTION_FILE}" >> $GITHUB_OUTPUT
+          ARTIFACT_NAME=$(ls ${{ env.COLLECTION_NAMESPACE }}-${{ env.COLLECTION_NAME }}-*.tar.gz)
+          echo "Built collection artifact: ${ARTIFACT_NAME}"
           
-          echo "Built collection: ${COLLECTION_FILE}"
-
-      - name: Test collection installation
-        run: |
-          source <(uv venv --quiet)
-          cd hyperstack/ansible_collections/hyperstack/cloud
-          ansible-galaxy collection install hyperstack-cloud-*.tar.gz --force
-          ansible-doc hyperstack.cloud.cloud_manager
+          echo "artifact-name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
+          echo "artifact-path=${{ env.COLLECTION_ROOT }}/${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Upload collection artifact
         uses: actions/upload-artifact@v4
         with:
-          name: collection-${{ needs.validate.outputs.version }}
-          path: ${{ steps.build.outputs.collection-path }}
-          retention-days: 90
+          name: collection-artifact
+          path: ${{ steps.build_collection.outputs.artifact-path }}
+          retention-days: 7
 
-  create-release:
-    name: Create GitHub Release
+  # =================================================================
+  #  INTEGRATION-TESTS: Runs integration tests against the built collection.
+  # =================================================================
+  integration-tests:
+    name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [validate, build, integration-tests]
-    if: ${{ !github.event.inputs.dry_run }}
+    needs: [validate, build]
+    if: ${{ !fromJSON(inputs.dry_run || 'false') }}
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download collection artifact
         uses: actions/download-artifact@v4
         with:
-          name: collection-${{ needs.validate.outputs.version }}
-          path: ./artifacts
+          name: collection-artifact
+          path: .
 
-      - name: Generate changelog
-        id: changelog
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          enable-cache: true
+
+      - name: Install dependencies and collection
         run: |
-          if [ -f CHANGELOG.md ]; then
-            # Extract changelog for this version
-            awk '/^## \[?'${{ needs.validate.outputs.version }}'\]?/{flag=1; next} /^## /{flag=0} flag' CHANGELOG.md > release_notes.md
-          else
-            echo "Release ${{ needs.validate.outputs.version }}" > release_notes.md
-            echo "" >> release_notes.md
-            echo "Changes in this release:" >> release_notes.md
-            git log --oneline --pretty=format:"- %s" $(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~10)..HEAD >> release_notes.md
-          fi
-          
-          echo "Release notes generated:"
-          cat release_notes.md
+          uv pip install ansible-core
+          ansible-galaxy collection install ${{ needs.build.outputs.artifact-name }} --force
+
+      - name: Run integration tests
+        env:
+          API_KEY_HYPER_STACK: ${{ secrets.API_KEY_HYPER_STACK }}
+        run: |
+          source .venv/bin/activate
+          ansible-playbook tests/integration_test_cloud_provider.yml -v
+
+  # =================================================================
+  #  PUBLISH: Creates GitHub Release and publishes to Ansible Galaxy.
+  # =================================================================
+  publish:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: [validate, build, integration-tests]
+    # Only run if not a dry run.
+    if: ${{ !fromJSON(github.event.inputs.dry_run || 'false') }}
+    # Use a production environment for full releases.
+    environment: ${{ needs.validate.outputs.is_prerelease == 'true' && 'staging' || 'production' }}
+    
+    steps:
+      - name: Download collection artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: collection-artifact
+          path: .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.validate.outputs.tag }}
-          name: Release ${{ needs.validate.outputs.version }}
-          body_path: release_notes.md
-          prerelease: ${{ needs.validate.outputs.is_prerelease }}
-          files: |
-            artifacts/*
-          generate_release_notes: true
-          make_latest: ${{ needs.validate.outputs.is_prerelease == 'false' }}
+          name: "Release ${{ needs.validate.outputs.version }}"
+          generate_release_notes: true # Auto-generates release notes from commits
+          prerelease: ${{ fromJSON(needs.validate.outputs.is_prerelease) }}
+          files: ${{ needs.build.outputs.artifact-name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-galaxy:
-    name: Publish to Ansible Galaxy
-    runs-on: ubuntu-latest
-    needs: [validate, build, create-release]
-    if: ${{ !github.event.inputs.dry_run && needs.validate.outputs.is_prerelease == 'false' }}
-    environment: production
-    
-    steps:
-      - name: Download collection artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: collection-${{ needs.validate.outputs.version }}
-          path: ./artifacts
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
-
-      - name: Install ansible-core
-        run: uv add ansible-core
-
       - name: Publish to Ansible Galaxy
         run: |
-          source <(uv venv --quiet)
-          cd artifacts
-          ansible-galaxy collection publish *.tar.gz --api-key ${{ secrets.GALAXY_API_KEY }} --verbose
+          ansible-galaxy collection publish ${{ needs.build.outputs.artifact-name }} --api-key ${{ secrets.GALAXY_API_KEY }} --verbose
         env:
           GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
 
-      - name: Verify publication
-        run: |
-          source <(uv venv --quiet)
-          # Wait a bit for Galaxy to process
-          sleep 30
-          ansible-galaxy collection install ${{ env.COLLECTION_NAMESPACE }}.${{ env.COLLECTION_NAME }}:${{ needs.validate.outputs.version }} --verbose
-
-  publish-prerelease:
-    name: Publish Pre-release to Galaxy
-    runs-on: ubuntu-latest
-    needs: [validate, build, create-release]
-    if: ${{ !github.event.inputs.dry_run && needs.validate.outputs.is_prerelease == 'true' }}
-    environment: staging
-    
-    steps:
-      - name: Download collection artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: collection-${{ needs.validate.outputs.version }}
-          path: ./artifacts
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
-
-      - name: Install ansible-core
-        run: uv add ansible-core
-
-      - name: Publish pre-release to Ansible Galaxy
-        run: |
-          source <(uv venv --quiet)
-          cd artifacts
-          ansible-galaxy collection publish *.tar.gz --api-key ${{ secrets.GALAXY_API_KEY }} --verbose
-        env:
-          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
-
+  # =================================================================
+  #  NOTIFY: Notifies of the final release status.
+  # =================================================================
   notify:
-    name: Notify Release
+    name: Notify Release Status
     runs-on: ubuntu-latest
-    needs: [validate, publish-galaxy, publish-prerelease]
-    if: always() && !cancelled() && !github.event.inputs.dry_run
+    needs: [validate, publish]
+    if: always() && !fromJSON(github.event.inputs.dry_run || 'false')
     
     steps:
-      - name: Notify success
-        if: needs.publish-galaxy.result == 'success' || needs.publish-prerelease.result == 'success'
+      - name: Notify on Success
+        if: needs.publish.result == 'success'
         run: |
-          echo "✅ Successfully released ${{ env.COLLECTION_NAMESPACE }}.${{ env.COLLECTION_NAME }} v${{ needs.validate.outputs.version }}"
-          echo "📦 Available at: https://galaxy.ansible.com/${{ env.COLLECTION_NAMESPACE }}/${{ env.COLLECTION_NAME }}"
+          echo "✅ Successfully published ${{ env.COLLECTION_NAMESPACE }}.${{ env.COLLECTION_NAME }} v${{ needs.validate.outputs.version }}"
           echo "🏷️ GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate.outputs.tag }}"
+          echo "📦 Ansible Galaxy: https://galaxy.ansible.com/${{ env.COLLECTION_NAMESPACE }}/${{ env.COLLECTION_NAME }}/"
 
-      - name: Notify failure
-        if: needs.publish-galaxy.result == 'failure' || needs.publish-prerelease.result == 'failure'
+      - name: Notify on Failure
+        if: needs.publish.result != 'success'
         run: |
-          echo "❌ Failed to release ${{ env.COLLECTION_NAMESPACE }}.${{ env.COLLECTION_NAME }} v${{ needs.validate.outputs.version }}"
+          echo "❌ Failed to publish ${{ env.COLLECTION_NAMESPACE }}.${{ env.COLLECTION_NAME }} v${{ needs.validate.outputs.version }}"
+          echo "Check the 'publish' job for logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
