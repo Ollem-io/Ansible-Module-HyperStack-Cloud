@@ -1,0 +1,55 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, 'feature/*', '*-*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: |
+        uv add ansible-core
+        uv add ansible
+
+    - name: Set up Ansible collection
+      run: |
+        mkdir -p ~/.ansible/collections/ansible_collections
+        ln -s $(pwd)/hyperstack ~/.ansible/collections/ansible_collections/
+
+    - name: Run integration tests
+      env:
+        API_KEY_HYPER_STACK: ${{ secrets.API_KEY_HYPER_STACK }}
+      run: |
+        source <(uv venv --quiet)
+        ansible-playbook tests/integration_test_cloud_provider.yml -v
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-test-results
+        path: |
+          tests/
+          /tmp/hyperstack_mock_state.json
+        if-no-files-found: ignore
