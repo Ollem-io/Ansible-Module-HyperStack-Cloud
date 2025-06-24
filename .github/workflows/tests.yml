@@ -101,11 +101,11 @@ jobs:
         run: |
           cd hyperstack/ansible_collections/hyperstack/cloud
           uv run ansible-galaxy collection build --force
-
       - name: Install built collection
         run: |
           cd hyperstack/ansible_collections/hyperstack/cloud
           uv run ansible-galaxy collection install hyperstack-cloud-*.tar.gz --force
+          uv run ansible-test coverage html --all
 
       - name: Test installed collection
         run: |
