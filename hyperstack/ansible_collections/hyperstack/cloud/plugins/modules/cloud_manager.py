@@ -215,6 +215,44 @@ diff:
             description: Desired firewall rules after changes
             type: str
             returned: when firewall rules change
+vms:
+    description: Details of VMs in the environment after operations
+    type: list
+    returned: when VMs are managed
+    elements: dict
+    contains:
+        name:
+            description: The name of the VM
+            type: str
+            returned: always
+        state:
+            description: Current state of the VM
+            type: str
+            returned: always
+        public_ip:
+            description: Public IP address of the VM
+            type: str
+            returned: when available
+        private_ip:
+            description: Private IP address of the VM
+            type: str
+            returned: when available
+        size:
+            description: VM size/flavor
+            type: str
+            returned: always
+        image:
+            description: Operating system image
+            type: str
+            returned: always
+        created_at:
+            description: VM creation timestamp
+            type: str
+            returned: always
+        last_seen:
+            description: Last activity timestamp
+            type: str
+            returned: always
 failed:
     description: Indicates if the module failed
     type: bool
@@ -224,6 +262,7 @@ failed:
 import os
 import json
 import tempfile
+from datetime import datetime
 from ansible.module_utils.basic import AnsibleModule
 
 # Set of valid images to simulate an API constraint
@@ -251,6 +290,38 @@ def _save_state(state):
             json.dump(state, f)
     except IOError:
         pass
+
+
+def _generate_mock_ip():
+    """Generate a mock IP address for demonstration."""
+    import random
+    return f"192.168.{random.randint(1, 255)}.{random.randint(1, 254)}"
+
+
+def _generate_vm_details(env_name, vm_name, vm_data):
+    """Generate detailed VM information for response."""
+    return {
+        "name": vm_name,
+        "state": vm_data.get("status", "unknown"),
+        "public_ip": vm_data.get("public_ip", _generate_mock_ip()),
+        "private_ip": vm_data.get("private_ip", f"10.0.{hash(vm_name) % 255}.{hash(env_name) % 254}"),
+        "size": vm_data.get("size", "unknown"),
+        "image": vm_data.get("image", "unknown"),
+        "created_at": vm_data.get("created_at", "2024-01-01T00:00:00Z"),
+        "last_seen": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    }
+
+
+def _get_environment_vms(env_name):
+    """Get detailed information about all VMs in an environment."""
+    state = _load_state()
+    vms = []
+    
+    if env_name in state and "vms" in state[env_name]:
+        for vm_name, vm_data in state[env_name]["vms"].items():
+            vms.append(_generate_vm_details(env_name, vm_name, vm_data))
+    
+    return vms
 
 
 def get_environment(name):
@@ -304,7 +375,10 @@ def create_vm(env_name, vm_spec):
             "name": vm_spec["name"],
             "size": vm_spec["size"],
             "image": vm_spec["image"],
-            "status": "running"
+            "status": "running",
+            "public_ip": _generate_mock_ip(),
+            "private_ip": f"10.0.{hash(vm_spec['name']) % 255}.{hash(env_name) % 254}",
+            "created_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         }
         _save_state(state)
 
@@ -470,6 +544,9 @@ def main():
 
     if not result.get("msg"):
         result["msg"] = f"Environment '{name}' is in desired state."
+
+    if state == "present" and (desired_vms is not None or current_env):
+        result["vms"] = _get_environment_vms(name)
 
     module.exit_json(**result)
 

@@ -76,6 +76,26 @@ The main module for managing Hyperstack Cloud resources with support for:
 - **Complex Object Handling**: Manage lists of VMs with comprehensive validation
 - **Error Handling**: Robust error reporting and recovery mechanisms
 - **Idempotent Operations**: Safe to run multiple times with consistent results
+- **Enhanced Responses**: Returns detailed VM information including IPs and status
+
+### instance_info
+
+A specialized module for querying VM instance information:
+
+- **Instance Discovery**: Find instances by name, IP address, or environment
+- **State Filtering**: Query instances by their current state (running, stopped, hibernated)
+- **Detailed Information**: Returns comprehensive instance details including network configuration
+- **Multi-Environment Support**: Query across multiple environments or focus on specific ones
+
+### instance
+
+A direct instance management module for individual VM control:
+
+- **Lifecycle Management**: Start, stop, restart, and terminate individual instances
+- **Hibernated Instance Revival**: Wake up hibernated instances for dynamic scaling
+- **Force Operations**: Override safety checks for emergency operations
+- **Wait Control**: Configurable waiting for operation completion
+- **Check Mode Support**: Preview changes before applying them
 
 #### Parameters
 
@@ -131,6 +151,61 @@ The main module for managing Hyperstack Cloud resources with support for:
         size: "large"
         image: "postgres-13"
         state: "running"
+```
+
+### Instance Discovery and Management
+
+```yaml
+- name: Dynamic hibernated instance revival
+  block:
+    - name: Find hibernated instances
+      hyperstack.cloud.instance_info:
+        instance_states: ["hibernated"]
+      register: hibernated_vms
+
+    - name: Start hibernated instances for deployment
+      hyperstack.cloud.instance:
+        name: "{{ item.name }}"
+        state: running
+        wait: true
+        wait_timeout: 300
+      loop: "{{ hibernated_vms.instances }}"
+      when: hibernated_vms.count > 0
+
+    - name: Get instance details by IP
+      hyperstack.cloud.instance_info:
+        ip_address: "192.168.1.100"
+      register: instance_by_ip
+
+    - name: Query all instances in production environment
+      hyperstack.cloud.instance_info:
+        environment: "production"
+        instance_states: ["running", "stopped"]
+      register: prod_instances
+```
+
+### Enhanced Response Information
+
+```yaml
+- name: Deploy VMs and get detailed information
+  hyperstack.cloud.cloud_manager:
+    name: "web-tier"
+    state: present
+    vms:
+      - name: "web-01"
+        size: "medium"
+        image: "ubuntu-22.04"
+        state: "running"
+  register: deployment_result
+
+- name: Display VM network information
+  debug:
+    msg: |
+      VM {{ item.name }} is {{ item.state }}
+      Public IP: {{ item.public_ip }}
+      Private IP: {{ item.private_ip }}
+      Created: {{ item.created_at }}
+  loop: "{{ deployment_result.vms }}"
 ```
 
 ### Error Handling Example
