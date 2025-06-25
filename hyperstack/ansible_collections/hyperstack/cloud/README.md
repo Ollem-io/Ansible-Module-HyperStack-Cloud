@@ -1,14 +1,14 @@
-# Ansible Collection - hyperstack.cloud
+# Ansible Collection - dsmello.cloud (v0.3.0)
 
 [![CI](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/workflows/CI/badge.svg)](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/actions)
-[![Ansible Galaxy](https://img.shields.io/badge/galaxy-hyperstack.cloud-660198.svg)](https://galaxy.ansible.com/hyperstack/cloud)
+[![Ansible Galaxy](https://img.shields.io/badge/galaxy-dsmello.cloud-660198.svg)](https://galaxy.ansible.com/dsmello/cloud)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 An Ansible collection for managing Hyperstack Cloud resources including environments, virtual machines, and network configurations.
 
 ## Description
 
-The `hyperstack.cloud` collection provides comprehensive automation capabilities for Hyperstack Cloud infrastructure. It enables you to:
+The `dsmello.cloud` collection provides comprehensive automation capabilities for Hyperstack Cloud infrastructure. It enables you to:
 
 - Manage cloud environments and their lifecycle
 - Deploy and configure virtual machines
@@ -41,7 +41,7 @@ ansible-galaxy collection install dsmello-cloud-*.tar.gz --force
   hosts: localhost
   gather_facts: false
   collections:
-    - hyperstack.cloud
+    - dsmello.cloud
   
   tasks:
     - name: Create development environment
@@ -97,6 +97,23 @@ A direct instance management module for individual VM control:
 - **Wait Control**: Configurable waiting for operation completion
 - **Check Mode Support**: Preview changes before applying them
 
+### instance_info (NEW in v0.3.0)
+
+Query and discover VM instances with filtering capabilities:
+
+- **Instance Discovery**: Find instances by name, IP address, or environment
+- **State Filtering**: Filter instances by their current state
+- **Comprehensive Details**: Returns detailed instance information including IPs and timestamps
+
+### instance (NEW in v0.3.0)
+
+Direct VM instance lifecycle management:
+
+- **Power Operations**: Start, stop, restart instances
+- **Termination**: Safely terminate instances
+- **Force Operations**: Override safety checks when needed
+- **Wait Support**: Option to wait for operation completion
+
 #### Parameters
 
 | Parameter | Type | Required | Default | Description |
@@ -121,7 +138,7 @@ A direct instance management module for individual VM control:
 
 ```yaml
 - name: Create simple environment
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: "production"
     state: present
     description: "Production environment"
@@ -131,7 +148,7 @@ A direct instance management module for individual VM control:
 
 ```yaml
 - name: Deploy multi-tier application
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: "app-stack"
     state: present
     vms:
@@ -214,7 +231,7 @@ A direct instance management module for individual VM control:
 - name: Deploy with error handling
   block:
     - name: Create environment with VMs
-      hyperstack.cloud.cloud_manager:
+      dsmello.cloud.cloud_manager:
         name: "test-env"
         state: present
         vms:
@@ -316,4 +333,4 @@ See [LICENSE](LICENSE) for the full license text.
 - **GitHub Repository**: https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud
 - **Documentation**: https://hyperstack-cloud-ansible.readthedocs.io
 - **Issue Tracker**: https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/issues
-- **Ansible Galaxy**: https://galaxy.ansible.com/hyperstack/cloud
+- **Ansible Galaxy**: https://galaxy.ansible.com/dsmello/cloud

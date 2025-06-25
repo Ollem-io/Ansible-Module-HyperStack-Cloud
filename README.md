@@ -1,7 +1,7 @@
 # Hyperstack Cloud Ansible Collection
 
 [![CI](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/workflows/CI/badge.svg)](https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud/actions)
-[![Ansible Galaxy](https://img.shields.io/badge/galaxy-hyperstack.cloud-660198.svg)](https://galaxy.ansible.com/hyperstack/cloud)
+[![Ansible Galaxy](https://img.shields.io/badge/galaxy-dsmello.cloud-660198.svg)](https://galaxy.ansible.com/dsmello/cloud)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Ansible](https://img.shields.io/badge/ansible-2.14%2B-red.svg)](https://www.ansible.com/)
@@ -91,7 +91,7 @@ make install
   hosts: localhost
   gather_facts: false
   collections:
-    - hyperstack.cloud
+    - dsmello.cloud
   
   tasks:
     - name: Create production environment
@@ -109,7 +109,7 @@ make install
   hosts: localhost
   gather_facts: false
   collections:
-    - hyperstack.cloud
+    - dsmello.cloud
   
   vars:
     environment_name: "app-production"
@@ -160,6 +160,55 @@ make install
 ### cloud_manager
 
 The primary module for managing Hyperstack Cloud resources.
+
+### instance_info
+
+Query and discover VM instances within environments.
+
+#### Synopsis
+
+Provides comprehensive VM instance discovery capabilities including filtering by name, IP address, environment, and state.
+
+#### Parameters
+
+| Parameter | Required | Default | Type | Description |
+|-----------|----------|---------|------|-------------|
+| `name` | no | - | str | Specific instance name to query |
+| `ip_address` | no | - | str | Filter by IP address |
+| `environment` | no | - | str | Filter by environment name |
+| `state` | no | - | str | Filter by instance state |
+
+#### Return Values
+
+| Key | Type | Always | Description |
+|-----|------|--------|-------------|
+| `instances` | list | yes | List of matching instances with detailed info |
+| `count` | int | yes | Number of instances found |
+
+### instance
+
+Direct VM instance lifecycle management.
+
+#### Synopsis
+
+Provides direct control over individual VM instances including start, stop, restart, and terminate operations.
+
+#### Parameters
+
+| Parameter | Required | Default | Type | Description |
+|-----------|----------|---------|------|-------------|
+| `name` | **yes** | - | str | Instance name to manage |
+| `action` | **yes** | - | str | Action to perform (`start`/`stop`/`restart`/`terminate`) |
+| `wait` | no | `true` | bool | Wait for operation completion |
+| `force` | no | `false` | bool | Force operation even if instance is in unexpected state |
+
+#### Return Values
+
+| Key | Type | Always | Description |
+|-----|------|--------|-------------|
+| `changed` | bool | yes | Whether the instance state changed |
+| `instance` | dict | yes | Updated instance information |
+| `action` | str | yes | Action that was performed |
 
 #### Synopsis
 
@@ -216,6 +265,8 @@ Manages Hyperstack Cloud environments, virtual machines, and network configurati
   - Start/stop/restart operations
   - Resize and reconfigure VMs
   - Bulk operations with parallel processing
+  - **NEW v0.3.0**: Instance discovery and querying
+  - **NEW v0.3.0**: Direct instance lifecycle control
 
 - **Network Security**
   - Declarative firewall rule management
