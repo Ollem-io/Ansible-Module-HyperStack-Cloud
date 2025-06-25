@@ -35,12 +35,12 @@ build: ## Build collection
 	cd $(COLLECTION_PATH) && $(PYTHON) ansible-galaxy collection build --force
 
 publish: build ## Publish to Galaxy
-	cd $(COLLECTION_PATH) && $(PYTHON) ansible-galaxy collection publish hyperstack-cloud-*.tar.gz --api-key $$GALAXY_API_KEY
+	cd $(COLLECTION_PATH) && $(PYTHON) ansible-galaxy collection publish dsmello-cloud-*.tar.gz --api-key $$GALAXY_API_KEY
 
 clean: ## Clean artifacts
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -exec rm -rf {} +
-	rm -rf $(COLLECTION_PATH)/hyperstack-cloud-*.tar.gz .pytest_cache/ .coverage
+	rm -rf $(COLLECTION_PATH)/dsmello-cloud-*.tar.gz .pytest_cache/ .coverage
 
 act: ## Run GitHub workflow with act
 	act -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest

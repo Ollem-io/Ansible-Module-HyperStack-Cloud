@@ -46,7 +46,7 @@ jobs:
       run: |
         source <(uv venv --quiet)
         ansible-galaxy collection build hyperstack/ansible_collections/hyperstack/cloud
-        ansible-galaxy collection install hyperstack-cloud-*.tar.gz
+        ansible-galaxy collection install dsmello-cloud-*.tar.gz
 
     - name: Run integration tests
       env:

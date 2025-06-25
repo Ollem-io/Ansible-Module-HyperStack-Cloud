@@ -1,12 +1,12 @@
 # tests/integration/targets/cloud_manager_firewall/tasks/main.yml
 - name: Ensure a test environment exists without any rules
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: present
     firewall_rules: []
 
 - name: 1. Run in CHECK mode to add a rule
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: present
     firewall_rules:
@@ -23,7 +23,7 @@
 
 - name: 2. Verify NO change was actually made
   # This is a simulated check. A real test might use a command or another module.
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: present
     firewall_rules: []
@@ -35,7 +35,7 @@
       - not result_verify_no_change.changed
 
 - name: 3. Run for REAL to add the rule
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: present
     firewall_rules:
@@ -48,7 +48,7 @@
       - result_real.changed
 
 - name: 4. Run again in CHECK mode (idempotency check)
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: present
     firewall_rules:
@@ -62,7 +62,7 @@
       - not result_check_idempotent.changed
 
 - name: 5. Test multiple rules with different order
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: present
     firewall_rules:
@@ -78,7 +78,7 @@
       - result_multiple.diff is defined
 
 - name: 6. Test idempotency with same rules in different order
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: present
     firewall_rules:
@@ -93,6 +93,6 @@
       - not result_reorder.changed
 
 - name: Cleanup - Remove test environment
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: firewall-test-env
     state: absent

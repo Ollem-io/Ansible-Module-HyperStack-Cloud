@@ -1,6 +1,6 @@
 # tests/integration/targets/cloud_manager_env/tasks/main.yml
 - name: 1. Create a new environment 'testing'
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: testing
     state: present
   register: result_create
@@ -11,7 +11,7 @@
       - result_create.changed
 
 - name: 2. Run the create task again (idempotency check)
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: testing
     state: present
   register: result_idempotent_create
@@ -22,7 +22,7 @@
       - not result_idempotent_create.changed
 
 - name: 3. Delete the environment 'testing'
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: testing
     state: absent
   register: result_delete
@@ -33,7 +33,7 @@
       - result_delete.changed
 
 - name: 4. Run the delete task again (idempotency check)
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: testing
     state: absent
   register: result_idempotent_delete

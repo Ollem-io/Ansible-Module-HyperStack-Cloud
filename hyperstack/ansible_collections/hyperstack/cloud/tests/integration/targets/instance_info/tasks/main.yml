@@ -1,0 +1,173 @@
+---
+- name: Instance Info Module Integration Tests
+  block:
+    - name: Setup test environment with VMs
+      dsmello.cloud.cloud_manager:
+        name: "instance-info-test"
+        state: present
+        vms:
+          - name: "test-vm-running"
+            size: small
+            image: ubuntu-22.04
+            state: running
+          - name: "test-vm-stopped"
+            size: small
+            image: ubuntu-22.04
+            state: stopped
+      register: setup_result
+
+    - name: Verify test environment setup
+      ansible.builtin.assert:
+        that:
+          - setup_result is succeeded
+          - setup_result.changed == true
+        fail_msg: "Failed to setup test environment"
+
+    - name: Test 1 - Query specific instance by name
+      dsmello.cloud.instance_info:
+        name: "test-vm-running"
+      register: instance_by_name
+
+    - name: Verify instance query by name
+      ansible.builtin.assert:
+        that:
+          - instance_by_name is succeeded
+          - instance_by_name.count == 1
+          - instance_by_name.instances[0].name == "test-vm-running"
+          - instance_by_name.instances[0].state == "running"
+          - instance_by_name.instances[0].environment == "instance-info-test"
+          - instance_by_name.instances[0].public_ip is defined
+          - instance_by_name.instances[0].private_ip is defined
+        fail_msg: "Instance query by name failed"
+
+    - name: Test 2 - Query instances by environment
+      dsmello.cloud.instance_info:
+        environment: "instance-info-test"
+      register: instances_by_env
+
+    - name: Verify instances query by environment
+      ansible.builtin.assert:
+        that:
+          - instances_by_env is succeeded
+          - instances_by_env.count == 2
+          - instances_by_env.instances | selectattr('name', 'equalto', 'test-vm-running') | list | length == 1
+          - instances_by_env.instances | selectattr('name', 'equalto', 'test-vm-stopped') | list | length == 1
+        fail_msg: "Instance query by environment failed"
+
+    - name: Test 3 - Query instances by state filter
+      dsmello.cloud.instance_info:
+        environment: "instance-info-test"
+        instance_states: ["running"]
+      register: running_instances
+
+    - name: Verify instances query by state
+      ansible.builtin.assert:
+        that:
+          - running_instances is succeeded
+          - running_instances.count == 1
+          - running_instances.instances[0].name == "test-vm-running"
+          - running_instances.instances[0].state == "running"
+        fail_msg: "Instance query by state failed"
+
+    - name: Test 4 - Query instances by multiple states
+      dsmello.cloud.instance_info:
+        environment: "instance-info-test"
+        instance_states: ["running", "stopped"]
+      register: multi_state_instances
+
+    - name: Verify instances query by multiple states
+      ansible.builtin.assert:
+        that:
+          - multi_state_instances is succeeded
+          - multi_state_instances.count == 2
+        fail_msg: "Instance query by multiple states failed"
+
+    - name: Test 5 - Query non-existent instance
+      dsmello.cloud.instance_info:
+        name: "non-existent-vm"
+      register: non_existent_instance
+
+    - name: Verify non-existent instance query
+      ansible.builtin.assert:
+        that:
+          - non_existent_instance is succeeded
+          - non_existent_instance.count == 0
+          - non_existent_instance.instances | length == 0
+        fail_msg: "Non-existent instance query should return empty results"
+
+    - name: Test 6 - Query instances in non-existent environment
+      dsmello.cloud.instance_info:
+        environment: "non-existent-env"
+      register: non_existent_env
+
+    - name: Verify non-existent environment query
+      ansible.builtin.assert:
+        that:
+          - non_existent_env is succeeded
+          - non_existent_env.count == 0
+          - non_existent_env.instances | length == 0
+        fail_msg: "Non-existent environment query should return empty results"
+
+    - name: Test 7 - Query by IP address
+      dsmello.cloud.instance_info:
+        ip_address: "{{ instance_by_name.instances[0].public_ip }}"
+      register: instance_by_ip
+
+    - name: Verify instance query by IP
+      ansible.builtin.assert:
+        that:
+          - instance_by_ip is succeeded
+          - instance_by_ip.count == 1
+          - instance_by_ip.instances[0].name == "test-vm-running"
+          - instance_by_ip.instances[0].public_ip == instance_by_name.instances[0].public_ip
+        fail_msg: "Instance query by IP failed"
+
+    - name: Test 8 - Query with invalid IP address
+      dsmello.cloud.instance_info:
+        ip_address: "invalid-ip-address"
+      register: invalid_ip_query
+
+    - name: Verify invalid IP query
+      ansible.builtin.assert:
+        that:
+          - invalid_ip_query is succeeded
+          - invalid_ip_query.count == 0
+        fail_msg: "Invalid IP query should return empty results"
+
+    - name: Test 9 - Query all instances (no filters)
+      dsmello.cloud.instance_info:
+      register: all_instances
+
+    - name: Verify all instances query
+      ansible.builtin.assert:
+        that:
+          - all_instances is succeeded
+          - all_instances.count >= 2
+          - all_instances.instances | selectattr('environment', 'equalto', 'instance-info-test') | list | length == 2
+        fail_msg: "All instances query failed"
+
+    - name: Test 10 - Verify response structure
+      ansible.builtin.assert:
+        that:
+          - instance_by_name.instances[0].name is defined
+          - instance_by_name.instances[0].state is defined
+          - instance_by_name.instances[0].environment is defined
+          - instance_by_name.instances[0].public_ip is defined
+          - instance_by_name.instances[0].private_ip is defined
+          - instance_by_name.instances[0].size is defined
+          - instance_by_name.instances[0].image is defined
+          - instance_by_name.instances[0].created_at is defined
+          - instance_by_name.instances[0].last_seen is defined
+          - instance_by_name.query is defined
+        fail_msg: "Instance response structure is incomplete"
+
+    - name: Test results summary
+      ansible.builtin.debug:
+        msg: "All instance_info integration tests completed successfully!"
+
+  always:
+    - name: Cleanup test environment
+      dsmello.cloud.cloud_manager:
+        name: "instance-info-test"
+        state: absent
+      failed_when: false

@@ -1,13 +1,13 @@
 # tests/integration/targets/cloud_manager_vm_failure/tasks/main.yml
 - name: Ensure a test environment exists
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: vm-failure-test-env
     state: present
 
 - name: Block to test expected failure
   block:
     - name: Attempt to create a VM with a non-existent image
-      hyperstack.cloud.cloud_manager:
+      dsmello.cloud.cloud_manager:
         name: vm-failure-test-env
         state: present
         vms:
@@ -26,7 +26,7 @@
         fail_msg: "The module did not fail with the expected error message."
 
 - name: Test successful VM creation with valid image
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: vm-failure-test-env
     state: present
     vms:
@@ -43,7 +43,7 @@
       - "'good-vm' in result_success.msg or 'created' in result_success.msg"
 
 - name: Test VM state transitions
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: vm-failure-test-env
     state: present
     vms:
@@ -59,7 +59,7 @@
       - result_stop.changed
 
 - name: Test VM deletion
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: vm-failure-test-env
     state: present
     vms:
@@ -75,6 +75,6 @@
       - result_delete.changed
 
 - name: Cleanup - Remove test environment
-  hyperstack.cloud.cloud_manager:
+  dsmello.cloud.cloud_manager:
     name: vm-failure-test-env
     state: absent
