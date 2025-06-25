@@ -21,7 +21,7 @@ The `hyperstack.cloud` collection provides comprehensive automation capabilities
 ### From Ansible Galaxy
 
 ```bash
-ansible-galaxy collection install hyperstack.cloud
+ansible-galaxy collection install dsmello.cloud
 ```
 
 ### From Source
@@ -30,7 +30,7 @@ ansible-galaxy collection install hyperstack.cloud
 git clone https://github.com/Ollem-io/Ansible-Module-HyperStack-Cloud.git
 cd hyperstack-cloud-ansible
 ansible-galaxy collection build hyperstack/ansible_collections/hyperstack/cloud --force
-ansible-galaxy collection install hyperstack-cloud-*.tar.gz --force
+ansible-galaxy collection install dsmello-cloud-*.tar.gz --force
 ```
 
 ## Quick Start

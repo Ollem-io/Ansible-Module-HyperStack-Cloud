@@ -48,7 +48,7 @@ A production-ready Ansible collection for managing [Hyperstack Cloud](https://hy
 ### From Ansible Galaxy (Recommended)
 
 ```bash
-ansible-galaxy collection install hyperstack.cloud
+ansible-galaxy collection install dsmello.cloud
 ```
 
 ### From Source
@@ -63,7 +63,7 @@ cd hyperstack/ansible_collections/hyperstack/cloud
 ansible-galaxy collection build --force
 
 # Install the built collection
-ansible-galaxy collection install hyperstack-cloud-*.tar.gz --force
+ansible-galaxy collection install dsmello-cloud-*.tar.gz --force
 ```
 
 ### Development Installation
